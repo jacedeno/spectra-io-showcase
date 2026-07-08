@@ -11,6 +11,10 @@
 
 **Status: private beta** · This is the public product showcase. The application source is private — live demo available on request.
 
+<img src="assets/screens/05-fft.png" alt="SpectraIO FFT spectrum workbench — bearing fault-frequency markers, band zoom, per-axis statistics" width="900">
+
+*FFT spectrum workbench: bearing fault-frequency markers (BPFO / BPFI / BSF / FTF), harmonic cursors, band zoom, per-axis statistics.*
+
 </div>
 
 ---
@@ -75,6 +79,20 @@ exposed to the internet through an outbound-only tunnel.
 | **On-demand high-resolution FFT** | Full spectra are pulled when an engineer asks, not streamed continuously — cuts cellular data volume dramatically. |
 | **Canvas rendering (ECharts)** | Spectral charts with thousands of bins render smoothly where SVG charting collapses. |
 | **Stateless app runtime** | Docker for beta, Kubernetes (K3s) for production — the app scales without sticky state. |
+
+## Screenshots
+
+All captures come from the live beta monitoring a real wireless sensor fleet
+(identifiers anonymized).
+
+| | |
+| :---: | :---: |
+| ![Fleet overview](assets/screens/01-overview.png) | ![Trend analysis](assets/screens/04-trend.png) |
+| **Fleet overview** — live tree with per-sensor readings | **Trend analysis** — 30-day RMS with alert thresholds |
+| ![Time waveform](assets/screens/06-waveform.png) | ![Equipment hierarchy](assets/screens/08-equipment.png) |
+| **Time waveform** — 25,600-sample capture, per axis | **Equipment hierarchy** — site → group → asset → sensor |
+| ![Alerts](assets/screens/07-alerts.png) | |
+| **Alerts** — acknowledge / resolve / assign lifecycle | |
 
 ## Stack
 
