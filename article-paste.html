@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Paste-ready article — SpectraIO</title>
+<style>
+  body{max-width:760px;margin:0 auto;padding:24px 20px 80px;
+       font-family:Georgia,"Times New Roman",serif;font-size:19px;line-height:1.65;color:#111}
+  .howto{user-select:none;-webkit-user-select:none;background:#fff8e1;border:2px dashed #c9a227;
+         border-radius:10px;padding:18px 20px;margin:0 0 34px;
+         font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#4a3b00}
+  .howto h2{margin:0 0 8px;font-size:17px}
+  .howto ol{margin:8px 0 0;padding-left:20px}
+  .howto li{margin:6px 0}
+  .howto .field{background:#fff;border:1px solid #e0cf8a;border-radius:6px;padding:8px 10px;margin:8px 0;
+                font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;user-select:text;-webkit-user-select:text}
+  h1{font-size:31px;line-height:1.22;margin:0 0 6px}
+  h2{font-size:24px;margin:36px 0 6px;line-height:1.3}
+  p{margin:16px 0}
+  strong{font-weight:700}
+  figure{margin:28px 0}
+  figure img{max-width:100%;height:auto;display:block;border:1px solid #ddd;border-radius:6px}
+  .cap{font-size:16px;color:#555;font-style:italic;margin:8px 0 0}
+  .marker{user-select:none;-webkit-user-select:none;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+          font-size:14px;color:#a11;background:#fdeaea;border:1px solid #f2bcbc;border-radius:6px;
+          padding:7px 10px;margin:8px 0 0;display:block}
+  a{color:#1d5fd6}
+  hr{border:0;border-top:1px solid #ddd;margin:38px 0}
+</style>
+</head>
+<body>
+
+<div class="howto">
+  <h2>How to use this page (this yellow box cannot be copied — select all is safe)</h2>
+  <ol>
+    <li>Open LinkedIn → <strong>Write article</strong>.</li>
+    <li>Paste the title into LinkedIn's title field:
+      <div class="field">Six Months Later: What Production Taught Me About My Industrial Vibration Pipeline</div>
+    </li>
+    <li>Come back here, press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>, click into the article
+      body on LinkedIn and press <strong>Ctrl+V</strong>. Headings, bold, links and paragraphs come across.</li>
+    <li><strong>Images:</strong> LinkedIn usually strips images on paste. Wherever you see a
+      <span style="color:#a11">red marker line</span>, put the cursor there, use LinkedIn's image
+      button to upload that file, paste the caption, then delete the marker line. The five files are in
+      <code>docs/images/linkedin/</code> — and each marker names the exact file.</li>
+    <li>Delete the leftover H1 title at the top of the pasted body if LinkedIn duplicated it.</li>
+  </ol>
+</div>
+
+<h1>Six Months Later: What Production Taught Me About My Industrial Vibration Pipeline</h1>
+
+<p><strong>In February I published an architecture and promised dashboards. Then the plant, the
+cellular bill, and a 19-hour outage rewrote three of my decisions.</strong></p>
+
+<figure>
+  <img src="https://jacedeno.github.io/spectra-io-showcase/assets/screens/05-fft.png" alt="FFT workbench">
+  <p class="cap">The FFT workbench: 4,000 stored bins per axis, bearing fault markers, harmonic ruler.</p>
+  <span class="marker">[IMAGE 1 of 5 — <b>00-cover-fft.png</b>] ← insert here, then delete this line</span>
+</figure>
+
+<p>Six months ago I published
+<a href="https://www.linkedin.com/pulse/building-industrial-iot-vibration-monitoring-system-from-jose-cedeno-wwvvc/">an
+article here</a> describing how I built an industrial vibration monitoring pipeline with open
+standards and no vendor lock-in: wireless sensors, MQTT, a time-series database, and a plan for
+dashboards and alerting.</p>
+
+<p>The pipeline was real. Everything after "future plans" was not, yet.</p>
+
+<p>It is now. The platform runs in production at an operating cement plant — crushers, vane
+compressors, gearboxes, motors — streaming over 4G, serving two organizations from one codebase.
+And along the way I had to change three of the decisions I published, because a live fleet argues
+back.</p>
+
+<p>Here is what changed, what broke, and what I would tell anyone building the same thing.</p>
+
+<h2>First, the part I did not change</h2>
+
+<p>The sensors. The edge is CTC Connect equipment — WS300 triaxial and WS200 single-axis dynamic
+sensors, WS100 process sensors, and an ACCESS360 gateway — and it carries the parts of the problem
+software cannot solve: an industrial accelerometer that survives cement dust and years on a
+battery, and a radio that gets a 25,600-sample capture off a machine without a cable.</p>
+
+<p>Everything I describe below is software standing on that. Choosing hardware that reports
+honestly and lets you configure it remotely is what made the rest possible.</p>
+
+<h2>Change 1: the low-code flow became a service</h2>
+
+<p>I built the first pipeline in Node-RED. It was the right call to prove the concept — you can see
+the whole flow, and you are writing MQTT parsers in minutes.</p>
+
+<p>Then it hit its ceiling. The flow lives inside its own container, not in version control, so
+"what changed last Tuesday" has no answer. It was hardcoded to one gateway. And it was not the tool
+I wanted computing an FFT on every reading.</p>
+
+<p>It is now a small Python service: one job, one container. It takes messages off the broker,
+reassembles the ones the gateway split in transit, translates the vendor's field names into ours,
+tags every point with gateway and sensor, and writes. It listens with a wildcard across gateways,
+so <strong>a new gateway is a new tag value, not a new deployment</strong>. It has a test suite.
+Every change is a reviewable diff.</p>
+
+<p>That last property is the one that matters. Two process sensors were silently invisible for
+weeks because one message channel nests its fields one level deeper than the rest, and a flat-only
+parser accepted the message, found nothing, and dropped it. No crash, no error — just missing data.
+What surfaced it was a per-channel message counter on a dashboard. What made the fix safe was a
+test that reproduces the payload.</p>
+
+<h2>Change 2: the spectrum moved, and then had to shrink</h2>
+
+<p>In February I described the sensors doing the FFT. Today the service computes it.</p>
+
+<p>The reason is bandwidth arithmetic. The raw waveform already crosses the cellular link on every
+full reading, so computing the spectrum from it costs <strong>nothing extra</strong>. Asking the
+sensor for a spectrum means paying for the same information twice, on a metered SIM.</p>
+
+<p>Then storage pushed back. A full-resolution spectrum plus the raw waveform serializes to about
+<strong>977 KB</strong>, and the database rejects any single string field over <strong>64 KB</strong>.
+The write fails — but only partially. The small scalar row still lands. So the symptom is not "no
+data", it is "trends fine, spectra mysteriously absent", which is a much worse thing to debug.</p>
+
+<p>The naive fix is to squash the spectrum to a fixed number of bins. I tried it, and it quietly
+ruined the product: a reading degraded from its native 2.06 Hz to about 3.08 Hz per point — 185 CPM.
+Fine for a trend line. Useless for bearing analysis on an 800 RPM machine, where the frequencies you
+are hunting sit below a few hundred Hz.</p>
+
+<figure>
+  <img src="https://jacedeno.github.io/spectra-io-showcase/assets/diagrams/02-fft-dual-band.png" alt="Dual-band FFT reduction">
+  <p class="cap">Dual-band reduction — native resolution below 1 kHz, peak-preserving buckets above.</p>
+  <span class="marker">[IMAGE 2 of 5 — <b>02-fft-dual-band.png</b>] ← insert here, then delete this line</span>
+</figure>
+
+<p>What ships now is a <strong>dual-band reduction</strong>. Every native bin at or below 1 kHz is
+stored untouched — <strong>0.51 Hz, or 31 CPM per bin</strong>. Only the band above is bucketed, and
+with a peak-preserving maximum rather than an average, so a high-frequency defect tone still
+survives. The waveform is stored as a min/max envelope that keeps the exact extremes, so the peak
+and peak-to-peak numbers stay correct. Band features are computed <em>before</em> any reduction, so
+the values an alarm fires on are never the downsampled ones.</p>
+
+<p>Six times finer where the diagnosis lives, and it fits in the field limit.</p>
+
+<p><strong>The lesson:</strong> "downsample to fit" is not one decision. Where you spend the
+resolution is the decision.</p>
+
+<h2>Change 3: the database tier</h2>
+
+<p>The February article named InfluxDB 3 Core, and I meant it — SQL over a columnar store, open
+format, no proprietary query language.</p>
+
+<p>It ran into two ceilings on real data: a cap on databases, and a per-query limit on the number of
+Parquet files, which a long trend window crosses once you have months of history. Moving to the
+Enterprise tier removed both, mostly because it compacts automatically.</p>
+
+<p>Worth being explicit about the trade: that tier is free for non-commercial use and limited to two
+CPU cores. It is the right call for a beta and an open decision for V1.0 — a commercial license, or
+moving the telemetry sink onto the Postgres cluster that already holds the app's relational state.
+Publishing an architecture does not mean pretending every choice is permanent.</p>
+
+<h2>The 19-hour outage</h2>
+
+<p>This is the part I would want to read.</p>
+
+<p>The database crash-looped for 19 hours and lost the telemetry that arrived during it.
+<strong>3,940 restarts</strong>, each about ten seconds, never binding its port. The log said the
+node was "still running in another process". There was no other process.</p>
+
+<p>The cause was not a power cut. The database needs about <strong>19 seconds</strong> to stop
+cleanly — flush the buffer, checkpoint, close the write-ahead log. Docker's default stop grace
+period is <strong>10 seconds</strong>. So on <em>any</em> host shutdown, including a perfectly clean
+one, it gets killed mid-write and leaves a zero-byte WAL file behind. On the next start, replay
+skips the empty file, the server then creates the next segment with create-if-not-exists semantics,
+collides with the empty file already holding that number, and reads the collision as another process
+owning the node.</p>
+
+<p>One config line I had never thought about turned every reboot into a coin flip.</p>
+
+<p>Two things turned a bad restart into a 19-hour outage, and both were mine:</p>
+
+<figure>
+  <img src="https://jacedeno.github.io/spectra-io-showcase/assets/diagrams/03-durable-write-path.png" alt="Durable write path">
+  <p class="cap">The durable write path: write() never raises; failed batches are parked on disk and replayed in order.</p>
+  <span class="marker">[IMAGE 3 of 5 — <b>03-durable-write-path.png</b>] ← insert here, then delete this line</span>
+</figure>
+
+<p><strong>The ingester had nowhere to put readings.</strong> The MQTT client acknowledges a message
+as soon as the handler returns. A reading not persisted at that instant is gone — the broker will
+not redeliver it. Failed writes were dropped on the floor, politely. There is now an on-disk spool:
+a failed batch is parked instead of raising, new batches queue behind the backlog so ordering
+survives, batches are fsynced and atomically renamed so a torn write is impossible, and the spool is
+bounded so a long outage costs the oldest readings rather than the disk the database lives on.</p>
+
+<p><strong>Nothing paged me.</strong> This is the real lesson. An error rule was firing the entire 19
+hours. It turned red on a screen nobody was looking at, because the stack had no alert router
+configured. <strong>Detection without routing is not monitoring.</strong></p>
+
+<figure>
+  <img src="https://jacedeno.github.io/spectra-io-showcase/assets/diagrams/04b-alert-layers-wide.png" alt="Three alerting layers">
+  <p class="cap">Three alerting layers, each covering the blind spot of the one above it.</p>
+  <span class="marker">[IMAGE 4 of 5 — <b>04b-alert-layers-wide.png</b>] ← insert here, then delete this line</span>
+</figure>
+
+<p>Alerting is now three layers, each covering the blind spot of the one above it: rules that watch
+the services and push to a phone; a probe on separate hardware, because a watcher that lives on the
+machine it watches dies with it; and an external dead-man's switch that alerts on the
+<em>absence</em> of a heartbeat, because nothing inside the house can report that the house is
+dark.</p>
+
+<p>A detail worth stealing: "no data" is a per-rule decision, not a default. Alert when absence
+<em>is</em> the failure. Stay silent everywhere else — a counter has no series until it first
+increments, and per-sensor gauges vanish across a restart. Left at the default, those rules page you
+on every deploy, and an alert you learn to ignore is worse than no alert.</p>
+
+<h2>The one-line option that almost invalidated everything</h2>
+
+<p>After shipping the dual-band spectrum I opened the app and measured about 90 CPM on screen. The
+stored data was correct at 31.</p>
+
+<p>The charting library was decimating the series to the canvas pixel width — roughly every third of
+4,000 points — through a "sampling" option that exists precisely to make dense charts fast. It is on
+by default in plenty of examples. It renders beautifully. And it silently throws away the exact
+thing an analyst is looking for.</p>
+
+<p>Pixel sampling is now banned on every diagnostic chart in this codebase. Canvas draws the full
+4,000-point series without complaining.</p>
+
+<p>If you build anything where the <em>shape of the data is the product</em>, go read your chart
+config today.</p>
+
+<h2>Where it is now</h2>
+
+<figure>
+  <img src="https://jacedeno.github.io/spectra-io-showcase/assets/diagrams/01-architecture.png" alt="End-to-end architecture">
+  <p class="cap">Sensor to browser. The public plane contains exactly one service.</p>
+  <span class="marker">[IMAGE 5 of 5 — <b>01-architecture.png</b>] ← insert here, then delete this line</span>
+</figure>
+
+<p>A reliability engineer opens one URL and gets the fleet as their plant is organised — site,
+group, assembly, asset, monitoring point — with trend, spectrum and waveform per sensor. Enter the
+running speed and the bearing geometry and the platform draws where BPFO, BPFI, BSF and FTF should
+appear. Thresholds per indicator, alerts with acknowledge/assign/resolve and an audit trail, CSV
+export, and the same thing on a phone next to the machine.</p>
+
+<p>No inbound port is open at the plant or at the platform. Nothing plugs into the plant network.
+The whole on-site footprint is a sensor on a machine and a box on a wall.</p>
+
+<p>I wrote the full technical version — architecture, the storage math, the post-mortem, the
+alerting design, screenshots of the platform — as a single page:</p>
+
+<p><a href="https://jacedeno.github.io/spectra-io-showcase/">https://jacedeno.github.io/spectra-io-showcase/</a></p>
+
+<p>If you are building something similar, or running rotating equipment and wondering whether this
+would work on your machines, I am happy to talk.</p>
+
+</body>
+</html>
