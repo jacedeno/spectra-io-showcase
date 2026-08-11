@@ -49,8 +49,8 @@ outages that shaped the design.** For the commercial overview, see the
 ```mermaid
 flowchart TB
   subgraph SITE["Plant (unattended)"]
-    S["Wireless sensors<br/>triaxial + single-axis + process<br/>BLE, battery, magnet/stud mount"]
-    GW["IIoT gateway<br/>BLE pairing, scheduled readings<br/>own isolated LAN"]
+    S["CTC Connect wireless sensors<br/>WS300 triaxial - WS200 single-axis - WS100 process<br/>BLE, battery, magnet/stud mount"]
+    GW["CTC ACCESS360 gateway<br/>BLE pairing, scheduled readings<br/>own isolated LAN"]
     BOX["Cellular router<br/>4G + VPN client<br/>outbound-only"]
     S -- "BLE · reading every 1-6 h" --> GW
     GW --> BOX
@@ -112,6 +112,45 @@ Three properties are worth naming, because everything else follows from them:
 ---
 
 ## Edge and transport
+
+### The hardware
+
+The edge is **CTC Connect** equipment, and that choice carries the parts of the problem that
+software cannot solve: an industrial-grade triaxial accelerometer that survives cement dust and
+years on a battery, and a certified radio that gets a 25,600-sample capture off a machine
+without a cable.
+
+| Device | Class | Role in the pipeline |
+| :--- | :--- | :--- |
+| **CTC WS300** | Triaxial dynamic | Full waveform + scalars per axis — the source of every spectrum shown here |
+| **CTC WS200** | Single-axis dynamic | Same dynamic path, one axis (and not always X — see below) |
+| **CTC WS100** | Process control | Hourly overall vibration with temperature and battery inline |
+| **CTC ACCESS360 gateway** | Collector | BLE pairing and scheduled readings; publishes JSON over MQTT per channel |
+
+The gateway ships its own device-local console (a React SPA over a FastAPI backend) and that
+console is where a sensor is **paired** — BLE provisioning with the sensor physically present.
+Worth knowing if you ever automate against one: the MQTT API has **no add/pair command**, its
+publish topics operate on already-registered devices only, and it keeps **two separate
+registries** — dynamic and process — that must be queried independently. A configuration
+message aimed at a serial that is not a registered *dynamic* device is answered with a "device
+does not exist" reply that means "wrong class", not "unpaired". That distinction costs an hour
+the first time.
+
+What *is* configurable over MQTT is the part that matters most here: reading cadence (6 h for
+dynamic sensors, 1 h for process) and **sample count per capture**. Raising the fleet to 25,600
+samples is what put 0.51 Hz resolution within reach — and two sensors ignored the first
+configuration message and needed a retry, which is exactly why the ingester verifies the result
+in the next reading rather than assuming the write took.
+
+Vendor hardware, own platform — the division of labour is deliberate. The vendor console is
+**device-local, single-gateway, single-tenant**: excellent for commissioning a gateway, not
+built to serve many gateways and organizations from one place, keep years of history, or draw
+bearing fault frequencies. Spectra is the opposite of each of those, and takes the raw waveform
+the sensors already send to do work the console does not: geometry-driven BPFO/BPFI/BSF/FTF
+markers instead of a single running-speed input, a stored spectrum on every reading rather than
+one fetched on demand, and thresholds and alert lifecycle across the whole fleet.
+
+### The link
 
 The sensors speak BLE to a gateway that owns its own isolated LAN. The gateway's uplink is a
 cellular router that dials out and holds a VPN tunnel to the platform; MQTT rides inside that
@@ -511,6 +550,9 @@ Built for someone standing next to the machine, not for a desk.*
 `Auth.js` · `Drizzle ORM` · `PostgreSQL / CloudNativePG` · `InfluxDB 3 (SQL over Flight SQL)` ·
 `Python` · `HiveMQ (MQTT 5.0)` · `Prometheus` · `Grafana` · `Docker` · `K3s` ·
 `Cloudflare Tunnel`
+
+**Edge hardware:** `CTC Connect WS300 / WS200 / WS100 wireless sensors` ·
+`CTC ACCESS360 gateway` · `cellular router with VPN client`
 
 ## About
 
