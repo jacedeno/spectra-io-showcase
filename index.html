@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpectraIO — Industrial Vibration Observability Platform</title>
+<meta name="description" content="How SpectraIO turns wireless vibration sensors into analyst-grade FFT diagnostics over a cellular link: architecture, dual-band spectral storage, durability engineering and three-layer alerting.">
+<meta property="og:title" content="SpectraIO — Industrial Vibration Observability Platform">
+<meta property="og:description" content="From wireless vibration sensors to analyst-grade FFT diagnostics over a cellular link. The engineering write-up.">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://jacedeno.github.io/spectra-io-showcase/assets/screens/05-fft.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/spectra-mark.png">
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f7f9fc; --ink:#12243a; --muted:#5b6f88; --line:#dbe3ee;
+    --brand:#1d5fd6; --brand-soft:#eef4ff; --accent:#0f766e; --warn:#b45309;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --maxw:820px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0e1621; --panel:#152232; --ink:#e6edf6; --muted:#9db0c7; --line:#26374d;
+           --brand:#6da2ff; --brand-soft:#16263c; --accent:#5eead4; --warn:#fbbf24; }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       font-size:18px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  a{color:var(--brand);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  header.hero{border-bottom:1px solid var(--line);background:
+      radial-gradient(1200px 400px at 50% -180px, var(--brand-soft), transparent 70%)}
+  .hero .wrap{padding-top:56px;padding-bottom:40px;text-align:center}
+  .hero img.mark{width:64px;height:64px;border-radius:14px}
+  h1{font-size:clamp(30px,5vw,44px);line-height:1.15;letter-spacing:-.02em;margin:18px 0 10px}
+  .tagline{font-size:clamp(17px,2.4vw,20px);color:var(--muted);margin:0 auto;max-width:620px}
+  .badges{margin:22px 0 0;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .badge{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);
+         border:1px solid var(--line);border-radius:999px;padding:5px 12px;background:var(--bg)}
+  .badge.live{color:var(--accent);border-color:currentColor}
+
+  nav.toc{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 92%,transparent);
+          backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  nav.toc .wrap{display:flex;gap:18px;overflow-x:auto;padding-top:12px;padding-bottom:12px;
+                font-size:14px;white-space:nowrap;scrollbar-width:thin}
+  nav.toc a{color:var(--muted)}
+  nav.toc a:hover{color:var(--brand)}
+
+  main .wrap{padding-top:8px;padding-bottom:8px}
+  section{padding:44px 0 8px;border-top:1px solid transparent}
+  h2{font-size:clamp(23px,3.4vw,30px);letter-spacing:-.015em;margin:0 0 6px;scroll-margin-top:64px}
+  h3{font-size:19px;margin:34px 0 4px;color:var(--ink)}
+  .kicker{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);
+          font-weight:600;margin:0 0 6px}
+  p{margin:14px 0}
+  ul,ol{padding-left:22px;margin:14px 0}
+  li{margin:8px 0}
+  strong{font-weight:650}
+  code{font-family:var(--mono);font-size:.88em;background:var(--panel);border:1px solid var(--line);
+       border-radius:5px;padding:1px 5px}
+  .lead{font-size:20px;color:var(--muted)}
+
+  figure{margin:26px 0;padding:0}
+  figure img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;
+             background:#fff}
+  figure img.diagram{border-color:var(--line);padding:10px}
+  figcaption{font-size:15px;color:var(--muted);margin-top:10px;line-height:1.55}
+
+  .tablewrap{overflow-x:auto;margin:22px 0;border:1px solid var(--line);border-radius:10px}
+  table{border-collapse:collapse;width:100%;font-size:16px;min-width:520px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--panel);font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+  td.num{font-family:var(--mono);white-space:nowrap}
+
+  .callout{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand);
+           border-radius:8px;padding:16px 18px;margin:24px 0;font-size:17px}
+  .callout.warn{border-left-color:var(--warn)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:26px 0}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--panel)}
+  .stat b{display:block;font-size:26px;font-family:var(--mono);letter-spacing:-.02em}
+  .stat span{font-size:14px;color:var(--muted);line-height:1.4;display:block;margin-top:2px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:24px 0}
+  @media (max-width:680px){ .grid2{grid-template-columns:1fr} body{font-size:17px} }
+  .grid2 figure{margin:0}
+
+  footer{border-top:1px solid var(--line);margin-top:56px;background:var(--panel)}
+  footer .wrap{padding:34px 22px 46px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 8px}
+  .btn{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 16px;
+       font-size:16px;color:var(--ink)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn:hover{text-decoration:none;border-color:var(--brand)}
+  .fine{font-size:14px;color:var(--muted)}
+  @media print{ nav.toc{display:none} body{font-size:11pt} figure img{break-inside:avoid} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="mark" src="assets/spectra-mark.png" alt="SpectraIO">
+    <h1>Industrial Vibration Observability Platform</h1>
+    <p class="tagline">Wireless vibration sensors to analyst-grade FFT diagnostics — over a cellular link, in a browser.</p>
+    <div class="badges">
+      <span class="badge live">Running in production</span>
+      <span class="badge">Engineering write-up</span>
+      <span class="badge">Source private · demo on request</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap">
+  <a href="#what">What this is</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#edge">Edge &amp; hardware</a>
+  <a href="#fft">FFT pipeline</a>
+  <a href="#bandwidth">Bandwidth</a>
+  <a href="#durability">Durability</a>
+  <a href="#alerting">Alerting</a>
+  <a href="#app">The app</a>
+  <a href="#whitelabel">White-label</a>
+  <a href="#deploy">Deployment</a>
+  <a href="#screens">Screenshots</a>
+  <a href="#next">What's next</a>
+</div></nav>
+
+<main>
+<div class="wrap">
+
+<section id="what">
+  <p class="kicker">Overview</p>
+  <h2>What this is</h2>
+  <p class="lead">Battery-powered wireless sensors on the machine, an IIoT gateway with its own
+  cellular uplink, and a self-hosted pipeline that turns every reading into a stored spectrum, a
+  trend, and — when a threshold is crossed — an alert on somebody's phone.</p>
+  <p>It runs today on a live fleet at an operating cement plant — crushers, vane compressors,
+  gearboxes, motors — streaming over 4G, and serves two organizations from one codebase.</p>
+  <p>This is the engineering half of the story: <strong>the decisions, the numbers, and the two
+  outages that shaped the design.</strong> For the commercial overview, see the
+  <a href="https://jacedeno.github.io/spectra-io-brief/">product brief</a>.</p>
+
+  <div class="stats">
+    <div class="stat"><b>4,000</b><span>stored FFT bins per axis</span></div>
+    <div class="stat"><b>0.51 Hz</b><span>resolution below 1 kHz (31 CPM)</span></div>
+    <div class="stat"><b>25,600</b><span>samples per axis, per capture</span></div>
+    <div class="stat"><b>0</b><span>inbound ports, at either end</span></div>
+  </div>
+
+  <h3>The constraints that define the whole system</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Constraint</th><th>Consequence</th></tr>
+    <tr><td>The link is <strong>cellular</strong>, metered, shared by the whole site</td>
+        <td>Every byte is a design decision; a full reading costs ~1 MB, so it must be worth it</td></tr>
+    <tr><td>The plant network is <strong>off limits</strong></td>
+        <td>Nothing plugs into it, and no port opens inbound anywhere — not at the plant, not at the platform</td></tr>
+    <tr><td>An analyst needs <strong>resolution</strong>, not a pretty chart</td>
+        <td>~31 CPM where bearing faults live, with every stored point rendered</td></tr>
+    <tr><td>The site is <strong>unattended</strong></td>
+        <td>An outage nobody is notified about lasts 19 hours — measured, not hypothetical</td></tr>
+  </table></div>
+</section>
+
+<section id="architecture">
+  <p class="kicker">01</p>
+  <h2>System architecture</h2>
+  <figure>
+    <img class="diagram" src="assets/diagrams/01-architecture.svg" alt="End-to-end architecture: plant edge, private plane, application plane and public plane">
+    <figcaption>Edge to browser. The public plane contains exactly one service; everything else
+    stays private.</figcaption>
+  </figure>
+  <p>Three properties are worth naming, because everything else follows from them:</p>
+  <ul>
+    <li><strong>The public plane contains exactly one service.</strong> The web app is reachable
+    through a Cloudflare Tunnel; the broker, both databases, the ingester, Prometheus and Grafana
+    stay on the private plane. The tunnel is outbound-only, so there is no inbound port to forward
+    at either end of the link.</li>
+    <li><strong>Two stores, on purpose.</strong> Telemetry — high-rate, append-only, never updated —
+    lives in InfluxDB 3. Relational state a human edits — organizations, users and roles, the
+    equipment tree, bearing and RPM configuration, thresholds, alert lifecycle, audit trail — lives
+    in PostgreSQL. Telemetry is never copied into Postgres, and app state never lands in InfluxDB.</li>
+    <li><strong>The app holds no state.</strong> No local database, no filesystem persistence, no
+    session affinity — which is what makes the container runtime an implementation detail rather
+    than a migration project.</li>
+  </ul>
+</section>
+
+<section id="edge">
+  <p class="kicker">02</p>
+  <h2>Edge and transport</h2>
+  <h3>The hardware</h3>
+  <p>The edge is <strong>CTC Connect</strong> equipment, and that choice carries the parts of the
+  problem software cannot solve: an industrial-grade triaxial accelerometer that survives cement
+  dust and years on a battery, and a certified radio that gets a 25,600-sample capture off a
+  machine without a cable.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Device</th><th>Class</th><th>Role in the pipeline</th></tr>
+    <tr><td><strong>CTC WS300</strong></td><td>Triaxial dynamic</td><td>Full waveform + scalars per axis — the source of every spectrum shown here</td></tr>
+    <tr><td><strong>CTC WS200</strong></td><td>Single-axis dynamic</td><td>Same dynamic path, one axis — and not always X</td></tr>
+    <tr><td><strong>CTC WS100</strong></td><td>Process control</td><td>Hourly overall vibration with temperature and battery inline</td></tr>
+    <tr><td><strong>CTC ACCESS360</strong></td><td>Gateway</td><td>BLE pairing and scheduled readings; publishes JSON over MQTT per channel</td></tr>
+  </table></div>
+  <p>The gateway ships its own device-local console — a React SPA over a FastAPI backend — and that
+  console is where a sensor is <strong>paired</strong>, by BLE provisioning with the sensor
+  physically present. Worth knowing if you ever automate against one: the MQTT API has
+  <strong>no add/pair command</strong>, its publish topics operate on already-registered devices
+  only, and it keeps <strong>two separate registries</strong> — dynamic and process — that must be
+  queried independently. A configuration message aimed at a serial that is not a registered
+  <em>dynamic</em> device is answered with a "device does not exist" reply that means "wrong
+  class", not "unpaired". That distinction costs an hour the first time.</p>
+  <p>What <em>is</em> configurable over MQTT is the part that matters most here: reading cadence
+  (6 h for dynamic sensors, 1 h for process) and <strong>sample count per capture</strong>. Raising
+  the fleet to 25,600 samples is what put 0.51 Hz resolution within reach — and two sensors ignored
+  the first configuration message and needed a retry, which is exactly why the ingester verifies
+  the result in the next reading rather than assuming the write took.</p>
+  <div class="callout">
+    <strong>Vendor hardware, own platform — the division of labour is deliberate.</strong> The
+    vendor console is device-local, single-gateway, single-tenant: excellent for commissioning a
+    gateway, not built to serve many gateways and organizations from one place, keep years of
+    history, or draw bearing fault frequencies. The platform is the opposite of each, and takes the
+    raw waveform the sensors already send to do work the console does not.
+  </div>
+
+  <h3>The link, and the message model</h3>
+  <p>The sensors speak BLE to a gateway that owns its own isolated LAN. The gateway's uplink is a
+  cellular router that dials out and holds a VPN tunnel to the platform; MQTT rides inside that
+  tunnel. Nothing is plugged into the plant's network and no firewall rule is requested — usually
+  the difference between a two-week pilot and a two-quarter IT project.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Channel class</th><th>Stored as</th><th>Notes</th></tr>
+    <tr><td>Full dynamic reading</td><td><code>vibration</code> + <code>vibration_fft</code></td><td>Scalar summary, plus computed spectrum, band features and waveform envelope</td></tr>
+    <tr><td>Lite dynamic reading</td><td><code>vibration</code></td><td>Compact summary between full readings</td></tr>
+    <tr><td>Process reading</td><td><code>vibration</code> (<code>data_type=process</code>)</td><td>Overall scalars with temperature and battery inline</td></tr>
+    <tr><td>Battery / temperature / check-in / RSSI</td><td><code>sensor_health</code></td><td>One row per metric, tagged by <code>metric</code></td></tr>
+    <tr><td>Connect / disconnect / config change</td><td><code>sensor_config</code></td><td>Typed columns plus a raw-JSON catch-all</td></tr>
+    <tr><td>Errors, status, gateway up/down, last-will, command responses</td><td><code>gateway_events</code></td><td>Tagged by <code>event_type</code></td></tr>
+  </table></div>
+  <p>Every point carries <code>gateway_sn</code> and <code>sensor_id</code> tags. That single
+  decision is what makes the platform multi-gateway: <strong>new gateways and sensors are new tag
+  values, never new databases and never new dashboards.</strong> An earlier design used one
+  database per gateway; it was consolidated into a single tagged store and the per-gateway
+  databases were deleted.</p>
+  <p>Two message-level details that cost real debugging time: large readings arrive
+  <strong>split across several MQTT messages</strong> and must be reassembled before parsing; and
+  one channel <strong>nests its fields one level deeper</strong> than the others. A flat-only
+  parser accepted that message, found no fields, and dropped it — silently. Two process sensors
+  were invisible for weeks. Structured logging plus a per-channel message counter is what surfaced
+  it, not a crash.</p>
+</section>
+
+<section id="fft">
+  <p class="kicker">03</p>
+  <h2>The FFT pipeline</h2>
+  <p>This is the part that makes the product a diagnostic tool instead of a trend viewer.</p>
+  <p>Each dynamic sensor captures <strong>25,600 samples per axis at ~13 kHz</strong> (~6.5 kHz
+  usable bandwidth). That raw waveform already crosses the cellular link on every full reading, so
+  the ingester computes the one-sided spectrum from it <strong>at no additional bandwidth
+  cost</strong> — the alternative, asking the sensor for a spectrum, would pay for the same data
+  twice.</p>
+  <p>Storing it is where it gets interesting. InfluxDB 3 rejects any single string field over
+  <strong>64 KB</strong>, and a full-resolution spectrum plus the raw waveform serializes to
+  roughly <strong>977 KB</strong>. The write fails with a 400 — but only <em>partially</em>: the
+  small scalar row still lands, so the symptom is not "no data", it is "trends fine, spectra
+  mysteriously absent". Worse, the 24-hour safety net keyed off the missing spectrum and kept
+  re-triggering those sensors hourly, each retry pulling megabytes over 4G for nothing.</p>
+  <figure>
+    <img class="diagram" src="assets/diagrams/02-fft-dual-band.svg" alt="Dual-band FFT reduction: native bins kept below 1 kHz, peak-preserving buckets above, min/max waveform envelope, band features at full resolution">
+    <figcaption>Dual-band reduction: resolution is spent where the diagnosis lives.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Resolution goes where the diagnosis lives.</strong> Bearing fault frequencies and
+    running-speed harmonics on 800–1,100 RPM machines sit below a few hundred Hz. Every native bin
+    at or below 1 kHz is stored untouched — <strong>0.51 Hz, or 31 CPM per bin</strong>. Only the
+    band above is bucketed, with a peak-preserving max rather than an average, so a high-frequency
+    defect tone still shows up.</li>
+    <li><strong>The stored frequency grid is deliberately non-uniform.</strong> The app plots
+    <code>[frequency, magnitude]</code> pairs instead of assuming constant spacing, which makes the
+    whole scheme transparent to the chart.</li>
+    <li><strong>The waveform is stored as a min/max envelope</strong>, oscilloscope-style: 2,000
+    points that keep the visual shape and the <em>exact</em> extremes, so the per-axis peak and
+    peak-to-peak table stays numerically correct.</li>
+    <li><strong>Band features are computed before any reduction</strong>, at full resolution — the
+    numbers an alarm fires on are never the downsampled ones.</li>
+  </ul>
+  <p>An earlier version bucketed the whole spectrum uniformly to 2,000 bins and degraded a reading
+  from its native 2.06 Hz to ~3.08 Hz per point (185 CPM). Adequate for a trend, useless for
+  bearing analysis. The dual-band store is <strong>6× finer</strong> in the band that matters and
+  still fits inside the field limit at ~40 KB.</p>
+  <div class="callout warn">
+    <strong>The rendering trap.</strong> The upgrade shipped and the on-screen resolution was still
+    ~90 CPM. The storage was fine; the chart library was decimating the series to the canvas pixel
+    width — roughly every third of 4,000 bins — through a "sampling" option that exists precisely
+    to make dense charts fast. Pixel sampling is now banned on every diagnostic chart. Canvas
+    handles the full 4,000-point series without complaint, and an analyst must see every point that
+    was stored. It is a one-line option that silently invalidates the product's core claim.
+  </div>
+</section>
+
+<section id="bandwidth">
+  <p class="kicker">04</p>
+  <h2>Bandwidth economics</h2>
+  <p>On a metered cellular link, the data plan is a first-class design constraint.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Quantity</th><th>Value</th></tr>
+    <tr><td>Full 3-axis reading (25,600 samples/axis) over 4G</td><td class="num">~1.03 MB</td></tr>
+    <tr><td>Fleet-wide, at the current cadence</td><td class="num">~17 MB/day</td></tr>
+    <tr><td>One dynamic sensor, full readings every 6 h</td><td class="num">~62 MB/mo ≈ $1.85</td></tr>
+    <tr><td>Check-in / RSSI / battery messages</td><td class="num">hundreds of bytes</td></tr>
+  </table></div>
+  <p>The ingester counts <strong>payload bytes per sensor and per channel</strong> as a Prometheus
+  counter, so fleet data consumption is a dashboard panel with a monthly projection and a cost
+  estimate, not a surprise on an invoice. Those panels use the cumulative counter rather than a
+  rate, because vibration messages are sporadic and large — a series that appears already at its
+  full value reads as ~0 under <code>rate()</code>.</p>
+  <p>The same dashboard tracks the SIM plan against its limit. Not theoretical: a SIM hit its data
+  cap, the carrier paused it, and the gateway went dark for 10 hours. There is now an alert at 80%
+  of the plan and a one-click resume action that only ever touches SIMs in a paused state.</p>
+  <p>The next optimization — dropping the waveform from the continuous stream and fetching it on
+  demand — would take the bill to cents per sensor per month, at the cost of the proactively stored
+  spectra. A deliberate trade, not an oversight: today, every reading yields a spectrum whether
+  anyone asked for one or not.</p>
+</section>
+
+<section id="durability">
+  <p class="kicker">05</p>
+  <h2>Durability: what a 19-hour outage taught</h2>
+  <p>The database crash-looped for <strong>19 hours</strong> and lost the telemetry that arrived
+  during it. The post-mortem found one cause and two amplifiers, and all three are closed. It is
+  the most useful section on this page.</p>
+
+  <h3>The cause was a shutdown, not a power cut</h3>
+  <p>InfluxDB needs ~19 seconds to stop cleanly — flush the write buffer, checkpoint the catalog,
+  close the WAL. Docker's default stop grace period is <strong>10 seconds</strong>. So on
+  <em>any</em> host shutdown, including a perfectly clean one, the process is
+  <code>SIGKILL</code>ed mid-write and leaves a <strong>zero-byte WAL file</strong> behind. Every
+  stateful container now declares an explicit <code>stop_grace_period</code>. A grace period is an
+  upper bound, not a delay — a container that exits in one second still exits in one second — so a
+  generous value costs nothing.</p>
+
+  <h3>Amplifier one: the database could not restart</h3>
+  <p>Replay skips an empty WAL segment ("file too small"), but the server then creates the
+  <em>next</em> segment with create-if-not-exists semantics, collides with the empty file already
+  holding that sequence number, and reads the collision as another process holding the node —
+  aborting with a message about a node "still running in another process" that has nothing to do
+  with the real failure. 3,940 restarts, each ~10 seconds, never binding its port. The documented
+  remedy needs a live server over HTTP, and the process dies before it listens.</p>
+  <p>The fix is an <strong>entrypoint wrapper</strong>, not an init container: on every start it
+  quarantines zero-byte WAL files by renaming them out of the replay glob, then execs the real
+  entrypoint with the original arguments. The distinction matters — on host boot Docker reapplies
+  restart policies but never honours <code>depends_on</code>, so an init service would sit out
+  precisely the scenario it exists for. Verified by reproducing the failure on the live system:
+  empty WAL injected at the next sequence number, container started, file quarantined, server bound
+  in four seconds with zero restarts.</p>
+
+  <h3>Amplifier two: the ingester had nowhere to put readings</h3>
+  <p>The MQTT client acknowledges a QoS-1 message as soon as the handler returns, so a reading not
+  persisted at that instant is gone — the broker will not redeliver it.</p>
+  <figure>
+    <img class="diagram" src="assets/diagrams/03-durable-write-path.svg" alt="Durable write path: direct write when healthy, park on disk on failure, background drain oldest-first">
+    <figcaption>The durable write path. <code>write()</code> never raises; a failed batch is parked
+    on disk and replayed in order.</figcaption>
+  </figure>
+  <ol>
+    <li><strong><code>write()</code> never raises.</strong> A failed write parks the batch on disk
+    instead of propagating an exception into the message handler.</li>
+    <li><strong>Ordering survives.</strong> While a backlog exists, new batches queue
+    <em>behind</em> it, and the drain stops at the first failure rather than reordering around a
+    flapping server.</li>
+    <li><strong>A torn write is impossible.</strong> Batches are written to a temp file, fsynced,
+    then atomically renamed — the very failure mode that started the incident is not reproducible
+    in the fix.</li>
+    <li><strong>The spool is bounded.</strong> Past its cap the oldest batches are evicted. A long
+    outage costs the oldest readings rather than the disk the database lives on; the host was at
+    86% during the incident, and an unbounded buffer would have been a worse failure than the one
+    it prevents.</li>
+  </ol>
+  <p>Verified end to end against the running stack: with the database stopped, live sensor traffic
+  was parked on disk, a drain attempt during the outage replayed nothing and lost nothing, and on
+  restart the backlog replayed automatically — readings the previous code would have dropped.</p>
+</section>
+
+<section id="alerting">
+  <p class="kicker">06</p>
+  <h2>Observability, and three layers of alerting</h2>
+  <p>The ingester exposes Prometheus metrics in three groups: <strong>service health</strong>
+  (broker connected, messages and points, errors, last message per gateway), the <strong>durable
+  write path</strong> (last write succeeded, batches and bytes on disk, points parked, points
+  replayed, batches dropped — the last being real data loss), and <strong>fleet health</strong>
+  (per-sensor last-seen, battery, RSSI), plus cellular plan metrics polled from the SIM provider's
+  API.</p>
+  <p>Prometheus scrapes that endpoint — and the database directly, with a bearer token, because a
+  metric derived from the ingester only moves when a write is <em>attempted</em>: during a quiet
+  period the database can be dead while the gauge still reads healthy. Correct, but it pages
+  nobody.</p>
+  <p>Everything is keyed by <code>gateway_sn</code> and <code>sensor_id</code> labels, so a new
+  device appears on the existing dashboard automatically. There are no per-device dashboards to
+  maintain.</p>
+  <div class="callout">
+    The real lesson of the 19-hour outage was not detection. <strong>An error rule fired the entire
+    time.</strong> The stack had no alert router configured, so it turned red on a screen nobody was
+    looking at. Detection without routing is not monitoring.
+  </div>
+  <figure>
+    <img class="diagram" src="assets/diagrams/04-alert-layers.svg" alt="Three alerting layers, each covering the blind spot of the one above" style="max-width:420px;margin:0 auto">
+    <figcaption>Each layer exists only to cover the blind spot of the one above it.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Rules live in exactly one place.</strong> They were <em>moved</em> to the alerting
+    layer, not copied — two definitions of the same alert drift apart, and only one of them can
+    page anyone.</li>
+    <li><strong>"No data" is a per-rule decision, not a default.</strong> Alert when absence
+    <em>is</em> the failure (the database is unreachable; the ingester process is gone). Stay silent
+    everywhere else, because absence is normal: a counter has no series until it first increments,
+    and per-sensor gauges vanish across a restart until each sensor reports again. Left at the
+    default, those rules page on every deploy.</li>
+    <li><strong>Two PromQL guards worth stealing.</strong> Dividing usage by a limit alerts forever
+    on devices with no configured limit unless you filter <code>limit &gt; 0</code>; and
+    <code>time() - gauge</code> on a never-yet-set gauge is ~56 years, which fires on every restart
+    unless you guard the zero.</li>
+    <li><strong>The layer-2 probe watches one thing.</strong> Adding more services to its decision
+    would duplicate layer 1 and page twice for one failure; what layer 1 structurally cannot report
+    is that layer 1 is gone. It retries within a single run so one dropped packet is not an outage,
+    and it keeps state in a ConfigMap it patches with a narrowly scoped ServiceAccount — otherwise
+    a stateless CronJob either notifies on every run, turning a night-long outage into hundreds of
+    messages, or never notifies twice.</li>
+    <li><strong>The heartbeat is unconditional.</strong> It asserts one thing: the watchdog ran and
+    reached the internet. Tying it to service health would make a single failure page from two
+    layers at once and leave silence meaning two different things.</li>
+  </ul>
+  <p>One honest blind spot is left, and it is architectural: a rule built on in-memory gauges can
+  only see sensors heard from since the last restart. A sensor that never reports after a restart
+  has no series and cannot trigger anything. Catching <em>that</em> needs an expected-sensor
+  inventory — relational state, and therefore Postgres, not a metrics store.</p>
+</section>
+
+<section id="app">
+  <p class="kicker">07</p>
+  <h2>The web application</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Decision</th><th>Why</th></tr>
+    <tr><td><strong>Next.js App Router + TypeScript</strong></td><td>Telemetry is queried in Server Components and API routes only — database credentials never reach a client bundle</td></tr>
+    <tr><td><strong>SQL over Flight SQL</strong></td><td>Standard SQL against a columnar store; no niche query language in the codebase</td></tr>
+    <tr><td><strong>Server-side downsampling</strong></td><td>Responses capped at ~2,000 points, with one deliberate exception: FFT spectra ship up to 4,000 bins per axis, because that <em>is</em> the product</td></tr>
+    <tr><td><strong>Apache ECharts, Canvas</strong></td><td>Thousands of points per series render smoothly where SVG charting collapses; pixel sampling banned on diagnostic charts</td></tr>
+    <tr><td><strong>Auth.js, RBAC, multi-tenant</strong></td><td>Organization scoping and engineer/viewer separation from the first commit, not bolted on</td></tr>
+    <tr><td><strong>Drizzle ORM + PostgreSQL</strong></td><td>Migrations in version control; the equipment tree, thresholds and alert lifecycle are relational data and are modelled as such</td></tr>
+    <tr><td><strong>Evaluator as a trigger</strong></td><td>A 5-minute authenticated call into the app; all threshold logic runs in-process in the stateless app, so the same code path serves a container runtime or a Kubernetes CronJob</td></tr>
+  </table></div>
+  <p>What an engineer actually does with it: browse a fleet organised as <strong>site → group →
+  assembly → asset → monitoring point</strong>, drill into a sensor, switch between
+  <strong>trend / spectrum / waveform</strong>, set running speed and bearing geometry from a
+  searchable catalog to get <strong>1×, BPFO, BPFI, BSF and FTF markers</strong> drawn on the
+  spectrum, toggle Hz/CPM and zoom bands, read per-axis RMS, peak, peak-to-peak, peak frequency and
+  crest factor, configure warning/alarm/critical thresholds per indicator, work the alert lifecycle
+  with an audit trail, and export a trend to CSV. On a phone, the same thing, in a drawer-based
+  shell built for a plant floor.</p>
+  <p>Two details that only show up on a real fleet: available axes are <strong>derived from the
+  data</strong>, because a single-axis sensor may report on any axis and hard-coding X produces
+  confidently empty charts; and sensor status is <strong>tri-state</strong> — reporting,
+  paired-but-silent, unpaired — because collapsing "silent" into "offline" hides the failure that
+  actually matters.</p>
+  <figure>
+    <img src="assets/screens/09-gateway-health.png" alt="Gateway health view">
+    <figcaption>Connected and online are <strong>different numbers</strong> and the UI refuses to
+    conflate them — 9 sensors paired, 2 heard from within the window. Below, the gateway's own event
+    stream and a per-sensor row with a 7-day RMS sparkline, battery, RSSI, temperature and offline
+    age.</figcaption>
+  </figure>
+  <figure>
+    <img src="assets/screens/10-bearing-thresholds.png" alt="Bearing configuration and threshold matrix">
+    <figcaption>Configuration lives next to the data it affects: running speed and bearing geometry
+    on the left — what turns a spectrum into labelled fault frequencies — and the per-indicator
+    warning / alarm / critical matrix on the right, per axis, individually enabled.</figcaption>
+  </figure>
+
+  <h3>In-app assistant</h3>
+  <p>The platform embeds a two-level assistant grounded in the project's <strong>own living
+  documentation</strong> rather than general knowledge: it answers questions about the platform,
+  the data model, configuration and operations, and can reach for live data through tools. The
+  knowledge base is built from the repository's docs and committed as a snapshot, so answers move
+  with the codebase instead of drifting away from it. The deeper level is gated behind a
+  passphrase, and the assistant's name is part of each deployment's branding.</p>
+  <figure>
+    <img src="assets/screens/11-assistant.png" alt="In-app assistant answering an operational question">
+    <figcaption>The assistant answering an operational question with the platform's own navigation,
+    not a generic model response.</figcaption>
+  </figure>
+</section>
+
+<section id="whitelabel">
+  <p class="kicker">08</p>
+  <h2>Multi-tenant and white-label</h2>
+  <p>One codebase serves multiple branded deployments. Branding is centralized in a single module,
+  sourced from build-time environment variables: name, tagline, logos, accent color (one hex
+  re-skins all three themes), login hero, footer, assistant name, and the authentication method.
+  Adding a brand needs no code change.</p>
+  <p>The separation axes are explicit: <strong>source code</strong> shared; <strong>branding</strong>,
+  <strong>auth method</strong>, <strong>app-state database</strong> and <strong>runtime</strong> per
+  deployment; <strong>telemetry</strong> shared read-only where deployments watch the same physical
+  fleet, and split by pointing at a per-customer database where they do not. Improvements reach
+  every deployment on the next rebuild.</p>
+  <div class="callout">
+    <strong>The screenshots on this page come from two different deployments of the same build.</strong>
+    The neutral ones carry the platform's own brand; the green ones are a customer deployment —
+    <em>Capitol Aggregates</em>, published with their permission — with its own logo, palette, login
+    hero, assistant name, users and equipment tree. No fork, no branch, no per-customer code path:
+    the same image, different build arguments and a different database.
+  </div>
+  <p>One gotcha worth recording, because it costs an afternoon every time: once a tunnel is wired
+  for a deployment, the auth library's canonical origin must be updated to the public hostname. It
+  is a runtime variable, not a build argument, so the tunnel can be perfectly reachable while every
+  login redirects the user back to an unreachable internal address.</p>
+  <figure>
+    <img src="assets/screens/12-settings.png" alt="Settings: theme, units, date format and alert email preferences">
+    <figcaption>Per-user display preferences on a customer-branded deployment. Readings are stored
+    canonically and converted for display — the stored data never depends on who is looking at
+    it.</figcaption>
+  </figure>
+</section>
+
+<section id="deploy">
+  <p class="kicker">09</p>
+  <h2>Deployment and runtime</h2>
+  <p>The platform runs today as Docker containers on a single virtualized host: broker, ingester,
+  time-series database, Prometheus, Grafana, and the branded web instances with their evaluator
+  triggers. Relational state lives in a <strong>CloudNativePG</strong> cluster on Kubernetes,
+  reached over the private network — the one component already where it will stay.</p>
+  <p>The production target is <strong>K3s</strong> for the stateless workloads, with manifests for
+  the Postgres cluster and the evaluator CronJob already written. Two migration notes worth being
+  honest about:</p>
+  <ul>
+    <li><strong>The spool needs a small PVC</strong>, which pins the ingester to one node and blocks
+    a second replica. Acceptable, because the ingester is already single-replica by design — it
+    keeps per-sensor state in memory. If it is ever scaled out, the spool has to become a shared
+    queue rather than a volume.</li>
+    <li><strong>The WAL guard should become unnecessary, not ported.</strong> It is a workaround for
+    a single-node, local-filesystem deployment that lost power mid-write. An object store with
+    atomic put semantics cannot leave a zero-byte segment. If the deployment keeps a local
+    filesystem on a volume, the guard stays — and a Kubernetes init container is the right shape
+    there, unlike Docker, because Kubernetes always runs init containers before the app container,
+    including after a node reboot.</li>
+  </ul>
+  <p>Exposure is through a Cloudflare Tunnel with no inbound ports at any layer; secrets are
+  injected as environment variables and Kubernetes secrets, and none of them are in version
+  control.</p>
+</section>
+
+<section id="screens">
+  <p class="kicker">10</p>
+  <h2>The platform</h2>
+  <figure>
+    <img src="assets/screens/05-fft.png" alt="FFT spectrum workbench">
+    <figcaption><strong>FFT workbench</strong> — 4,000 stored bins per axis, bearing fault-frequency
+    markers (BPFO / BPFI / BSF / FTF), harmonic ruler, zoom bands, Hz/CPM, per-axis statistics.</figcaption>
+  </figure>
+  <div class="grid2">
+    <figure><img src="assets/screens/01-overview.png" alt="Fleet overview">
+      <figcaption><strong>Fleet overview</strong> — live tree, per-sensor readings, severity roll-up.</figcaption></figure>
+    <figure><img src="assets/screens/08-equipment.png" alt="Equipment hierarchy">
+      <figcaption><strong>Equipment hierarchy</strong> — site to monitoring point.</figcaption></figure>
+    <figure><img src="assets/screens/04-trend.png" alt="Trend analysis">
+      <figcaption><strong>Trend</strong> — 30-day RMS with warning / alarm / critical bands.</figcaption></figure>
+    <figure><img src="assets/screens/06-waveform.png" alt="Time waveform">
+      <figcaption><strong>Waveform</strong> — 25,600-sample capture, exact extremes preserved.</figcaption></figure>
+    <figure><img src="assets/screens/07-alerts.png" alt="Alerts">
+      <figcaption><strong>Alerts</strong> — acknowledge / assign / resolve, with audit trail.</figcaption></figure>
+    <figure><img src="assets/screens/13-mobile.png" alt="Spectrum workbench on a phone">
+      <figcaption><strong>On a phone</strong> — the full spectrum and the harmonic ruler.</figcaption></figure>
+  </div>
+</section>
+
+<section id="next">
+  <p class="kicker">11</p>
+  <h2>What's next</h2>
+  <ul>
+    <li><strong>On-demand high-resolution readings</strong> — force a spectrum between scheduled
+    ones from the app, which also unlocks dropping the continuous waveform and taking the cellular
+    bill to cents per sensor.</li>
+    <li><strong>Long-range radio for dispersed assets</strong> — the platform ingests standard MQTT,
+    so LoRaWAN nodes covering well clusters and pump stations are a new radio, not a new system.</li>
+    <li><strong>Expected-sensor inventory in alerting</strong> — closing the one structural blind
+    spot above by driving fleet-completeness alerts from the relational store.</li>
+    <li><strong>Migration of the stateless workloads to K3s</strong>, and the V1.0 decision on the
+    telemetry sink.</li>
+  </ul>
+  <h3>Stack</h3>
+  <p><code>Next.js</code> · <code>React</code> · <code>TypeScript</code> ·
+  <code>Apache ECharts (Canvas)</code> · <code>Tailwind CSS</code> · <code>Auth.js</code> ·
+  <code>Drizzle ORM</code> · <code>PostgreSQL / CloudNativePG</code> ·
+  <code>InfluxDB 3 (SQL over Flight SQL)</code> · <code>Python</code> ·
+  <code>HiveMQ (MQTT 5.0)</code> · <code>Prometheus</code> · <code>Grafana</code> ·
+  <code>Docker</code> · <code>K3s</code> · <code>Cloudflare Tunnel</code></p>
+  <p class="fine"><strong>Edge hardware:</strong> CTC Connect WS300 / WS200 / WS100 wireless sensors ·
+  CTC ACCESS360 gateway · cellular router with VPN client.</p>
+</section>
+
+</div>
+</main>
+
+<footer><div class="wrap">
+  <h2 style="margin-bottom:8px">About</h2>
+  <p>SpectraIO is designed and built by <a href="https://www.linkedin.com/in/joseangelcedeno/">Jose
+  Cedeno</a> — Senior Reliability Engineer and IIoT architect. It grew out of real plant-floor pain:
+  30+ years around rotating equipment, now paired with a self-hosted, cloud-native stack.</p>
+  <div class="cta">
+    <a class="btn primary" href="https://www.linkedin.com/in/joseangelcedeno/">Get in touch · demo on request</a>
+    <a class="btn" href="https://jacedeno.github.io/spectra-io-brief/">Product brief</a>
+    <a class="btn" href="https://github.com/jacedeno/spectra-io-showcase">This write-up on GitHub</a>
+  </div>
+  <p class="fine">The application source is private. Screenshots come from the running platform;
+  the customer-branded captures are published with permission.</p>
+</div></footer>
+
+</body>
+</html>
