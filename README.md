@@ -383,6 +383,33 @@ because a single-axis sensor may report on any axis and hard-coding X produces c
 charts; and sensor status is **tri-state** — reporting, paired-but-silent, unpaired — because
 collapsing "silent" into "offline" hides the failure that actually matters.
 
+<img src="assets/screens/09-gateway-health.png" alt="Gateway health view — connected/online counts, recent gateway activity, per-sensor sparklines with battery, RSSI, temperature and offline age" width="900">
+
+*Gateway health: connected vs. online are **different numbers** and the UI refuses to conflate
+them — 9 sensors paired, 2 heard from within the window. Below, the gateway's own event stream
+and a per-sensor row with a 7-day RMS sparkline, battery, RSSI, temperature and offline age.*
+
+<img src="assets/screens/10-bearing-thresholds.png" alt="Sensor workbench — bearing and running-speed configuration alongside the per-indicator threshold matrix" width="900">
+
+*Configuration lives next to the data it affects: running speed and bearing geometry (catalog
+lookup autofills the geometry) on the left — which is what turns a spectrum into labelled fault
+frequencies — and the per-indicator warning / alarm / critical matrix on the right, per axis,
+individually enabled.*
+
+### In-app assistant
+
+The platform embeds a two-level assistant grounded in the project's **own living documentation**
+rather than general knowledge: it answers questions about the platform, the data model,
+configuration and operations, and can reach for live data through tools. The knowledge base is
+built from the repository's docs and committed as a snapshot, so the assistant's answers move
+with the codebase instead of drifting away from it. The second, deeper level is gated behind a
+passphrase, and the assistant's name is part of each deployment's branding.
+
+<img src="assets/screens/11-assistant.png" alt="In-app assistant answering a question about locating the highest-vibration sensor" width="900">
+
+*The assistant answering an operational question with the platform's own navigation, not a
+generic LLM response.*
+
 ### Multi-tenant and white-label
 
 One codebase serves multiple branded deployments. Branding is centralized in a single module,
@@ -399,6 +426,19 @@ One gotcha worth recording, because it costs an afternoon every time: once a tun
 for a deployment, the auth library's canonical origin must be updated to the public hostname.
 It is a runtime variable, not a build argument, so the tunnel can be perfectly reachable while
 every login redirects the user back to an unreachable internal address.
+
+> **The screenshots above are from two different deployments of the same build.** The neutral
+> ones carry the platform's own brand; the green ones are a customer deployment — *Capitol
+> Aggregates*, published here with their permission — with its own logo, palette, login hero,
+> assistant name, users and equipment tree. No fork, no branch, no per-customer code path: the
+> same image, different build arguments and a different database.
+
+<img src="assets/screens/12-settings.png" alt="Settings — theme, unit system, date/time format and alert email preferences" width="900">
+
+*Per-user display preferences on a customer-branded deployment: theme, unit system
+(°C/°F, in/s vs mm/s, g), date/time format, and which alert severities generate an email.
+Readings are stored canonically and converted for display — the stored data never depends on
+who is looking at it.*
 
 ---
 
@@ -432,7 +472,7 @@ control.
 
 ## Screenshots
 
-Live platform, real fleet, identifiers and accounts anonymized.
+Live platform, real fleet, in the platform's own brand.
 
 | | |
 | :---: | :---: |
@@ -442,6 +482,15 @@ Live platform, real fleet, identifiers and accounts anonymized.
 | **Trend analysis** — 30-day RMS with warning / alarm / critical bands | **Time waveform** — 25,600-sample capture per axis, exact extremes preserved |
 | <img src="assets/screens/05-fft.png" alt="FFT spectrum" width="440"> | <img src="assets/screens/07-alerts.png" alt="Alerts" width="440"> |
 | **FFT workbench** — 4,000 bins/axis, bearing markers, harmonic ruler, Hz/CPM | **Alerts** — acknowledge / assign / resolve with an audit trail |
+
+<div align="center">
+
+<img src="assets/screens/13-mobile.png" alt="Spectrum workbench on a phone" width="300">
+
+*The same workbench on a phone — drawer navigation, the full spectrum, and the harmonic ruler.
+Built for someone standing next to the machine, not for a desk.*
+
+</div>
 
 ---
 
