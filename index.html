@@ -137,7 +137,7 @@
   <p class="lead">Battery-powered wireless sensors on the machine, an IIoT gateway with its own
   cellular uplink, and a self-hosted pipeline that turns every reading into a stored spectrum, a
   trend, and — when a threshold is crossed — an alert on somebody's phone.</p>
-  <p>It runs today on a live fleet at an operating cement plant — crushers, vane compressors,
+  <p>It runs today on a live fleet at an operating heavy-industry plant — crushers, vane compressors,
   gearboxes, motors — streaming over 4G, and serves two organizations from one codebase.</p>
   <p>This is the engineering half of the story: <strong>the decisions, the numbers, and the two
   outages that shaped the design.</strong> For the commercial overview, see the
@@ -193,7 +193,7 @@
   <h2>Edge and transport</h2>
   <h3>The hardware</h3>
   <p>The edge is <strong>CTC Connect</strong> equipment, and that choice carries the parts of the
-  problem software cannot solve: an industrial-grade triaxial accelerometer that survives cement
+  problem software cannot solve: an industrial-grade triaxial accelerometer that survives plant
   dust and years on a battery, and a certified radio that gets a 25,600-sample capture off a
   machine without a cable.</p>
   <div class="tablewrap"><table>
@@ -504,10 +504,10 @@
   every deployment on the next rebuild.</p>
   <div class="callout">
     <strong>The screenshots on this page come from two different deployments of the same build.</strong>
-    The neutral ones carry the platform's own brand; the green ones are a customer deployment —
-    <em>Capitol Aggregates</em>, published with their permission — with its own logo, palette, login
-    hero, assistant name, users and equipment tree. No fork, no branch, no per-customer code path:
-    the same image, different build arguments and a different database.
+    The neutral ones carry the platform's own brand; the green ones are a customer-branded
+    deployment, with its own logo, palette, login hero, assistant name, users and equipment tree.
+    No fork, no branch, no per-customer code path: the same image, different build arguments and a
+    different database.
   </div>
   <p>One gotcha worth recording, because it costs an afternoon every time: once a tunnel is wired
   for a deployment, the auth library's canonical origin must be updated to the public hostname. It
@@ -610,8 +610,7 @@
     <a class="btn" href="https://jacedeno.github.io/spectra-io-brief/">Product brief</a>
     <a class="btn" href="https://github.com/jacedeno/spectra-io-showcase">This write-up on GitHub</a>
   </div>
-  <p class="fine">The application source is private. Screenshots come from the running platform;
-  the customer-branded captures are published with permission.</p>
+  <p class="fine">The application source is private. Screenshots come from the running platform.</p>
 </div></footer>
 
 </body>

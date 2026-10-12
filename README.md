@@ -26,7 +26,7 @@ vibration sensors on the machine, an IIoT gateway with its own cellular uplink, 
 self-hosted pipeline that turns every reading into a stored spectrum, a trend, and — when a
 threshold is crossed — an alert on somebody's phone.
 
-It runs today on a live fleet at an operating cement plant (crushers, vane compressors,
+It runs today on a live fleet at an operating heavy-industry plant (crushers, vane compressors,
 gearboxes, motors), streaming over 4G, and serves two organizations from one codebase.
 
 This document is the engineering half of the story: **the decisions, the numbers, and the two
@@ -116,7 +116,7 @@ Three properties are worth naming, because everything else follows from them:
 ### The hardware
 
 The edge is **CTC Connect** equipment, and that choice carries the parts of the problem that
-software cannot solve: an industrial-grade triaxial accelerometer that survives cement dust and
+software cannot solve: an industrial-grade triaxial accelerometer that survives plant dust and
 years on a battery, and a certified radio that gets a 25,600-sample capture off a machine
 without a cable.
 
@@ -467,10 +467,10 @@ It is a runtime variable, not a build argument, so the tunnel can be perfectly r
 every login redirects the user back to an unreachable internal address.
 
 > **The screenshots above are from two different deployments of the same build.** The neutral
-> ones carry the platform's own brand; the green ones are a customer deployment — *Capitol
-> Aggregates*, published here with their permission — with its own logo, palette, login hero,
-> assistant name, users and equipment tree. No fork, no branch, no per-customer code path: the
-> same image, different build arguments and a different database.
+> ones carry the platform's own brand; the green ones are a customer-branded deployment, with
+> its own logo, palette, login hero, assistant name, users and equipment tree. No fork, no
+> branch, no per-customer code path: the same image, different build arguments and a different
+> database.
 
 <img src="assets/screens/12-settings.png" alt="Settings — theme, unit system, date/time format and alert email preferences" width="900">
 
