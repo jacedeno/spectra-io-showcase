@@ -11,6 +11,26 @@
 
 **Running in production** · This is the public engineering write-up. The application source is private — live demo on request.
 
+<p>
+  <a href="#overview"><img src="https://img.shields.io/badge/status-running%20in%20production-2ea44f?style=flat-square" alt="Status: running in production"></a>
+  <a href="assets/screens/05-fft.png"><img src="https://img.shields.io/badge/spectrum-4%2C000%20bins%2Faxis-1f6feb?style=flat-square" alt="Spectrum: 4,000 bins/axis"></a>
+  <a href="assets/diagrams/02-fft-dual-band.png"><img src="https://img.shields.io/badge/resolution-0.51%20Hz%20%2F%2031%20CPM-1f6feb?style=flat-square" alt="Resolution: 0.51 Hz / 31 CPM"></a>
+  <a href="assets/diagrams/04-alert-layers.png"><img src="https://img.shields.io/badge/alerting-3%20layers-8957e5?style=flat-square" alt="Alerting: 3 layers"></a>
+  <a href="https://jacedeno.github.io/spectra-io-brief/"><img src="https://img.shields.io/badge/source-private%2C%20demo%20on%20request-6e7781?style=flat-square" alt="Source: private, demo on request"></a>
+</p>
+<p>
+  <img src="https://img.shields.io/badge/Next.js-App%20Router-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js App Router">
+  <img src="https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Python-ingester-3776ab?style=flat-square&logo=python&logoColor=white" alt="Python ingester">
+  <img src="https://img.shields.io/badge/HiveMQ-MQTT%205.0-660066?style=flat-square&logo=mqtt&logoColor=white" alt="HiveMQ: MQTT 5.0">
+  <img src="https://img.shields.io/badge/InfluxDB-3-22adf6?style=flat-square&logo=influxdb&logoColor=white" alt="InfluxDB 3">
+  <img src="https://img.shields.io/badge/PostgreSQL-CloudNativePG-4169e1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL / CloudNativePG">
+  <img src="https://img.shields.io/badge/Grafana-alerting-f46800?style=flat-square&logo=grafana&logoColor=white" alt="Grafana">
+  <img src="https://img.shields.io/badge/K3s-target-ffc61c?style=flat-square&logo=k3s&logoColor=black" alt="K3s">
+  <img src="https://img.shields.io/badge/Cloudflare-Tunnel-f38020?style=flat-square&logo=cloudflare&logoColor=white" alt="Cloudflare Tunnel">
+  <img src="https://img.shields.io/github/last-commit/jacedeno/spectra-io-showcase?style=flat-square" alt="Last commit">
+</p>
+
 <img src="assets/screens/05-fft.png" alt="SpectraIO FFT spectrum workbench — bearing fault-frequency markers, band zoom, per-axis statistics" width="900">
 
 *FFT spectrum workbench: 4,000 stored bins per axis, bearing fault-frequency markers (BPFO / BPFI / BSF / FTF), harmonic ruler, band zoom, per-axis statistics.*
@@ -19,7 +39,7 @@
 
 ---
 
-## What this is
+## Overview
 
 SpectraIO is a condition-monitoring platform for rotating equipment: battery-powered wireless
 vibration sensors on the machine, an IIoT gateway with its own cellular uplink, and a
@@ -111,7 +131,10 @@ Three properties are worth naming, because everything else follows from them:
 
 ---
 
-## Edge and transport
+## Engineering deep dive
+
+<details>
+<summary><b>Edge and transport</b></summary>
 
 ### The hardware
 
@@ -183,9 +206,10 @@ Two message-level details that cost real debugging time and are easy to get wron
   process sensors were invisible for weeks because of it. Structured logging plus a per-channel
   message counter is what surfaced it, not a crash.
 
----
+</details>
 
-## The FFT pipeline
+<details>
+<summary><b>The FFT pipeline</b></summary>
 
 This is the part that makes the product a diagnostic tool instead of a trend viewer.
 
@@ -244,9 +268,10 @@ rendering handles the full 4,000-point series without complaint, and an analyst 
 point that was stored. It is a one-line option that silently invalidates the product's core
 claim, which is exactly the kind of bug that survives a code review.
 
----
+</details>
 
-## Bandwidth economics
+<details>
+<summary><b>Bandwidth economics</b></summary>
 
 On a metered cellular link, the data plan is a first-class design constraint:
 
@@ -273,9 +298,10 @@ demand — would take the bill to cents per sensor per month, at the cost of the
 stored spectra. It is a deliberate trade, not an oversight: today, every reading yields a
 spectrum whether anyone asked for one or not.
 
----
+</details>
 
-## Durability: what a 19-hour outage taught
+<details>
+<summary><b>Durability: what a 19-hour outage taught</b></summary>
 
 The database crash-looped for **19 hours** and lost the telemetry that arrived during it. The
 post-mortem found one cause and two amplifiers, and all three are closed. It is the most
@@ -335,9 +361,10 @@ Verified end to end against the running stack: with the database stopped, live s
 was parked on disk, a drain attempt during the outage replayed nothing and lost nothing, and on
 restart the backlog replayed automatically — readings the previous code would have dropped.
 
----
+</details>
 
-## Observability, and three layers of alerting
+<details>
+<summary><b>Observability, and three layers of alerting</b></summary>
 
 The ingester exposes Prometheus metrics in three groups: **service health** (broker connected,
 messages and points, errors, last message per gateway), the **durable write path** (last write
@@ -394,9 +421,10 @@ can only see sensors heard from since the last restart. A sensor that never repo
 restart has no series and cannot trigger anything. Catching *that* needs an expected-sensor
 inventory — which is relational state, and therefore lives in Postgres, not in a metrics store.
 
----
+</details>
 
-## The web application
+<details>
+<summary><b>The web application</b></summary>
 
 | Decision | Why |
 | :--- | :--- |
@@ -479,9 +507,10 @@ every login redirects the user back to an unreachable internal address.
 Readings are stored canonically and converted for display — the stored data never depends on
 who is looking at it.*
 
----
+</details>
 
-## Deployment and runtime
+<details>
+<summary><b>Deployment and runtime</b></summary>
 
 The platform runs today as Docker containers on a single virtualized host: broker, ingester,
 time-series database, Prometheus, Grafana, and the branded web instances with their evaluator
@@ -506,6 +535,8 @@ being honest about:
 Exposure is through a **Cloudflare Tunnel** with no inbound ports at any layer; secrets are
 injected as environment variables and Kubernetes secrets, and none of them are in version
 control.
+
+</details>
 
 ---
 
@@ -544,7 +575,7 @@ Built for someone standing next to the machine, not for a desk.*
   above by driving fleet-completeness alerts from the relational store.
 - **Migration of the stateless workloads to K3s**, and the V1.0 decision on the telemetry sink.
 
-## Stack
+## Tech stack
 
 `Next.js` · `React` · `TypeScript` · `Apache ECharts (Canvas)` · `Tailwind CSS` ·
 `Auth.js` · `Drizzle ORM` · `PostgreSQL / CloudNativePG` · `InfluxDB 3 (SQL over Flight SQL)` ·
@@ -561,3 +592,11 @@ Reliability Engineer and IIoT architect. It grew out of real plant-floor pain: 3
 rotating equipment, now paired with a self-hosted, cloud-native stack.
 
 **Contact:** [LinkedIn](https://www.linkedin.com/in/joseangelcedeno/) · demo on request.
+
+---
+
+<p align="center">
+  Built by <b>Jose Cedeno</b> ·
+  <a href="https://geekendzone.com">geekendzone.com</a> ·
+  <a href="https://www.linkedin.com/in/joseangelcedeno/">LinkedIn</a>
+</p>
